@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.5'
     id 'io.spring.dependency-management' version '1.1.4'
+    id 'nu.studer.jooq' version '9.0'
 }
 
 group = 'com.joel.jooq'
@@ -27,12 +28,117 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-jooq'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
     runtimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'com.h2database:h2'
+
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
+
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    jooqGenerator 'org.jooq:jooq-meta-extensions:3.19.0'
+    jooqGenerator 'com.h2database:h2'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+import nu.studer.gradle.jooq.JooqEdition
+
+// jooq codegen with DDL.
+jooq {
+    version = dependencyManagement.importedProperties['jooq.version']
+    edition = JooqEdition.OSS
+    configurations {
+        main {
+            generationTool {
+                logging = org.jooq.meta.jaxb.Logging.INFO
+                generator {
+                    name = 'org.jooq.codegen.DefaultGenerator'
+                    strategy {
+                        "org.jooq.codegen.DefaultGeneratorStrategy"
+                    }
+                    generate {
+                        relations = true
+                        deprecated = false
+                        records = true
+                        immutablePojos = true
+                        fluentSetters = true
+                        daos = true
+                        pojosEqualsAndHashCode = true
+                        javaTimeTypes = true
+                    }
+                    database {
+                        name = 'org.jooq.meta.extensions.ddl.DDLDatabase'
+                        properties {
+                            property {
+                                key = 'scripts'
+                                value = 'src/main/resources/*.sql'
+                            }
+                            property {
+                                key = 'sort'
+                                value = 'semantic'
+                            }
+                            property {
+                                key = 'unqualifiedSchema'
+                                value = 'none'
+                            }
+                            property {
+                                key = 'defaultNameCase'
+                                value = 'lower'
+                            }
+                        }
+                    }
+                    target {
+                        packageName = 'com.joel.jooq.generated'
+                    }
+
+                }
+            }
+        }
+    }
+}
+
+// jooq codegen with db access.
+//jooq {
+//    version = dependencyManagement.importedProperties['jooq.version']
+//    edition = JooqEdition.OSS
+//
+//    configurations {
+//        main {
+//            generationTool {
+//                logging = org.jooq.meta.jaxb.Logging.WARN
+//                jdbc {
+//                    driver = 'org.h2.Driver'
+//                    url = 'jdbc:h2:mem:test'
+//                    user = 'admin'
+//                    password = '1q2w3e4r'
+//                    properties {
+//                        property {
+//                            key = 'PAGE_SIZE'
+//                            value = 2048
+//                        }
+//                    }
+//                }
+//                generator {
+//                    name = 'org.jooq.codegen.DefaultGenerator'
+//                    database {
+//                        name = 'org.jooq.meta.h2.H2Database'
+//                        inputSchema = 'TEST'
+//includes = '.*'
+//excludes = ''
+//                    }
+//                    target {
+//                        packageName = 'com.joel.jooq.generated'
+//                    }
+//                    strategy.name = "org.jooq.codegen.DefaultGeneratorStrategy"
+//                }
+//            }
+//        }
+//    }
+//}

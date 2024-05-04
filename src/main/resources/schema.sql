@@ -1,3 +1,7 @@
+CREATE SCHEMA IF NOT EXISTS db_app;
+
+USE db_app;
+
 CREATE TABLE IF NOT EXISTS users
 (
     id       BIGSERIAL PRIMARY KEY,
